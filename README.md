@@ -38,7 +38,84 @@ python .vscode-deps/install_deps.py
 
 ## 🚀 Utilisation rapide
 
-### 1. Initialisation (une seule fois)
+Deux approches possibles : **manuelle** (dans votre code) ou **automatique** (avec triggers).
+
+### Approche 1: Triggers automatiques (recommandé) 🔥
+
+Audit **100% transparent** avec des triggers DB2 AFTER :
+
+```sql
+-- Créer la table d'audit
+-- (voir structure plus bas)
+
+-- Trigger AFTER INSERT
+CREATE OR REPLACE TRIGGER CUSTOMER_AFTER_INSERT
+  AFTER INSERT ON CUSTOMER
+  REFERENCING NEW AS N
+  FOR EACH ROW MODE DB2SQL
+BEGIN ATOMIC
+  INSERT INTO AUDITLOG (
+    TABLE_NAME, RECORD_KEY, OPERATION, USER_NAME,
+    NEW_VALUES, IP_ADDRESS, JOB_NAME
+  ) VALUES (
+    'CUSTOMER',
+    CAST(N.ID AS VARCHAR(1024)),
+    'I',
+    CURRENT_USER,
+    JSON_OBJECT('id' VALUE N.ID, 'name' VALUE N.NAME, 'email' VALUE N.EMAIL),
+    QSYS2.CLIENT_IPADDR,
+    QSYS2.JOB_NAME
+  );
+END;
+
+-- Trigger AFTER UPDATE
+CREATE OR REPLACE TRIGGER CUSTOMER_AFTER_UPDATE
+  AFTER UPDATE ON CUSTOMER
+  REFERENCING OLD AS O NEW AS N
+  FOR EACH ROW MODE DB2SQL
+BEGIN ATOMIC
+  INSERT INTO AUDITLOG (
+    TABLE_NAME, RECORD_KEY, OPERATION, USER_NAME,
+    OLD_VALUES, NEW_VALUES, IP_ADDRESS, JOB_NAME
+  ) VALUES (
+    'CUSTOMER',
+    CAST(N.ID AS VARCHAR(1024)),
+    'U',
+    CURRENT_USER,
+    JSON_OBJECT('id' VALUE O.ID, 'name' VALUE O.NAME, 'email' VALUE O.EMAIL),
+    JSON_OBJECT('id' VALUE N.ID, 'name' VALUE N.NAME, 'email' VALUE N.EMAIL),
+    QSYS2.CLIENT_IPADDR,
+    QSYS2.JOB_NAME
+  );
+END;
+
+-- Trigger AFTER DELETE
+CREATE OR REPLACE TRIGGER CUSTOMER_AFTER_DELETE
+  AFTER DELETE ON CUSTOMER
+  REFERENCING OLD AS O
+  FOR EACH ROW MODE DB2SQL
+BEGIN ATOMIC
+  INSERT INTO AUDITLOG (
+    TABLE_NAME, RECORD_KEY, OPERATION, USER_NAME,
+    OLD_VALUES, IP_ADDRESS, JOB_NAME
+  ) VALUES (
+    'CUSTOMER',
+    CAST(O.ID AS VARCHAR(1024)),
+    'D',
+    CURRENT_USER,
+    JSON_OBJECT('id' VALUE O.ID, 'name' VALUE O.NAME, 'email' VALUE O.EMAIL),
+    QSYS2.CLIENT_IPADDR,
+    QSYS2.JOB_NAME
+  );
+END;
+```
+
+✅ **Avantages** : Aucune modification du code applicatif, audit garanti, centralisé  
+📝 Voir [examples/triggers_example.sql](examples/triggers_example.sql) pour plus d'exemples
+
+### Approche 2: API manuelle (dans votre code RPGLE)
+
+#### 1. Initialisation (une seule fois)
 
 ```rpgle
 /include 'auditlog.rpgleinc'
@@ -50,7 +127,7 @@ AuditLog_CreateTable();
 AuditLog_Init(*ON);
 ```
 
-### 2. Auditer vos opérations
+#### 2. Auditer vos opérations
 
 ```rpgle
 // Exemple : INSERT
@@ -82,7 +159,7 @@ AuditLog_Delete('CUSTOMER' : customer);
 exec sql DELETE FROM CUSTOMER WHERE ID = :id;
 ```
 
-### 3. Consulter l'historique
+#### 3. Consulter l'historique
 
 ```rpgle
 // Obtenir l'historique d'un enregistrement
@@ -95,6 +172,16 @@ nbRecords = AuditLog_GetHistoryByDate('CUSTOMER' : dateFrom : dateTo : history);
 // Recherche par utilisateur
 nbRecords = AuditLog_GetHistoryByUser('CUSTOMER' : userName : history);
 ```
+
+### Quelle approche choisir ?
+
+| Critère | Triggers (SQL) | API (RPGLE) |
+|---------|----------------|-------------|
+| **Transparence** | ✅ 100% automatique | ❌ Modification du code |
+| **Performance** | ✅ Natif DB2 | ⚠️ Appel de fonction |
+| **Flexibilité** | ⚠️ Fixe par trigger | ✅ Contrôle fin |
+| **Maintenance** | ✅ Centralisée | ❌ Dispersée |
+| **Recommandé pour** | Production, nouvelles tables | Migration progressive |
 
 ## 📊 Structure de la table d'audit
 
@@ -131,7 +218,9 @@ ibmi-audit-trail/
 ├── ref/                     # Fichiers include
 │   └── auditlog.rpgleinc   # Prototypes et structures
 ├── examples/                # Exemples d'utilisation
-│   └── demo_audit.rpgle    # Programme de démonstration
+│   ├── demo_audit.rpgle    # Programme de démonstration
+│   ├── triggers_example.sql # Exemples de triggers SQL
+│   └── trigger_program.rpgle # Programme de trigger système
 ├── docs/                    # Documentation
 │   ├── API.md              # Référence API
 │   └── COMPLIANCE.md       # Guide conformité
