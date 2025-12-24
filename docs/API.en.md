@@ -1,31 +1,31 @@
 # API Reference - ibmi-audit-trail
 
-**[🇫🇷 Version française](API.md)** | **[🇬🇧 English version](API.en.md)**
+**[🇫🇷 Version française](API.md)** | **🇬🇧 English version**
 
-## Table des matières
+## Table of Contents
 
-- [Initialisation](#initialisation)
-- [Opérations d'audit](#opérations-daudit)
+- [Initialization](#initialization)
+- [Audit Operations](#audit-operations)
 - [Consultation](#consultation)
 - [Maintenance](#maintenance)
 - [Configuration](#configuration)
-- [Utilitaires](#utilitaires)
+- [Utilities](#utilities)
 
 ---
 
-## Initialisation
+## Initialization
 
 ### `AuditLog_Init(active)`
 
-Initialise et active/désactive le système d'audit.
+Initializes and activates/deactivates the audit system.
 
-**Paramètres:**
-- `active` (ind): `*ON` pour activer, `*OFF` pour désactiver
+**Parameters:**
+- `active` (ind): `*ON` to activate, `*OFF` to deactivate
 
-**Retour:**
-- (ind): `*ON` si succès, `*OFF` si erreur
+**Return:**
+- (ind): `*ON` if successful, `*OFF` if error
 
-**Exemple:**
+**Example:**
 ```rpgle
 dcl-s success ind;
 success = AuditLog_Init(*ON);
@@ -35,36 +35,36 @@ success = AuditLog_Init(*ON);
 
 ### `AuditLog_CreateTable()`
 
-Crée la table AUDITLOG et ses indexes. Cette fonction est idempotente (peut être appelée plusieurs fois).
+Creates the AUDITLOG table and its indexes. This function is idempotent (can be called multiple times).
 
-**Retour:**
-- (ind): `*ON` si succès, `*OFF` si erreur
+**Return:**
+- (ind): `*ON` if successful, `*OFF` if error
 
-**Exemple:**
+**Example:**
 ```rpgle
 if AuditLog_CreateTable();
-  dsply 'Table créée avec succès';
+  dsply 'Table created successfully';
 endif;
 ```
 
-**Note:** Cette fonction doit être appelée une seule fois lors de l'installation initiale.
+**Note:** This function should be called only once during initial installation.
 
 ---
 
-## Opérations d'audit
+## Audit Operations
 
 ### `AuditLog_Insert(tableName : record)`
 
-Enregistre une opération INSERT dans le journal d'audit.
+Records an INSERT operation in the audit log.
 
-**Paramètres:**
-- `tableName` (varchar(128)): Nom de la table
-- `record` (pointer): Pointeur vers la structure de données de l'enregistrement
+**Parameters:**
+- `tableName` (varchar(128)): Table name
+- `record` (pointer): Pointer to the record data structure
 
-**Retour:**
-- (ind): `*ON` si succès, `*OFF` si erreur
+**Return:**
+- (ind): `*ON` if successful, `*OFF` if error
 
-**Exemple:**
+**Example:**
 ```rpgle
 dcl-ds customer likeds(CUSTOMER_T);
 customer.id = 12345;
@@ -78,17 +78,17 @@ exec sql INSERT INTO CUSTOMER VALUES(:customer);
 
 ### `AuditLog_Update(tableName : newRecord : oldRecord)`
 
-Enregistre une opération UPDATE avec les valeurs avant et après modification.
+Records an UPDATE operation with values before and after modification.
 
-**Paramètres:**
-- `tableName` (varchar(128)): Nom de la table
-- `newRecord` (pointer): Pointeur vers les nouvelles valeurs
-- `oldRecord` (pointer): Pointeur vers les anciennes valeurs
+**Parameters:**
+- `tableName` (varchar(128)): Table name
+- `newRecord` (pointer): Pointer to the new values
+- `oldRecord` (pointer): Pointer to the old values
 
-**Retour:**
-- (ind): `*ON` si succès, `*OFF` si erreur
+**Return:**
+- (ind): `*ON` if successful, `*OFF` if error
 
-**Exemple:**
+**Example:**
 ```rpgle
 dcl-ds oldCustomer likeds(CUSTOMER_T);
 dcl-ds newCustomer likeds(CUSTOMER_T);
@@ -105,16 +105,16 @@ exec sql UPDATE CUSTOMER SET EMAIL = :newCustomer.email WHERE ID = :id;
 
 ### `AuditLog_Delete(tableName : record)`
 
-Enregistre une opération DELETE.
+Records a DELETE operation.
 
-**Paramètres:**
-- `tableName` (varchar(128)): Nom de la table
-- `record` (pointer): Pointeur vers l'enregistrement supprimé
+**Parameters:**
+- `tableName` (varchar(128)): Table name
+- `record` (pointer): Pointer to the deleted record
 
-**Retour:**
-- (ind): `*ON` si succès, `*OFF` si erreur
+**Return:**
+- (ind): `*ON` if successful, `*OFF` if error
 
-**Exemple:**
+**Example:**
 ```rpgle
 dcl-ds customer likeds(CUSTOMER_T);
 
@@ -129,17 +129,17 @@ exec sql DELETE FROM CUSTOMER WHERE ID = :id;
 
 ### `AuditLog_GetHistory(tableName : recordKey : history)`
 
-Récupère l'historique complet d'un enregistrement spécifique.
+Retrieves the complete history of a specific record.
 
-**Paramètres:**
-- `tableName` (varchar(128)): Nom de la table
-- `recordKey` (varchar(1024)): Clé de l'enregistrement (format JSON pour clés composites)
-- `history` (likeds(AUDIT_HISTORY_T) dim(1000)): Tableau pour stocker les résultats
+**Parameters:**
+- `tableName` (varchar(128)): Table name
+- `recordKey` (varchar(1024)): Record key (JSON format for composite keys)
+- `history` (likeds(AUDIT_HISTORY_T) dim(1000)): Array to store results
 
-**Retour:**
-- (int(10)): Nombre d'enregistrements trouvés
+**Return:**
+- (int(10)): Number of records found
 
-**Exemple:**
+**Example:**
 ```rpgle
 dcl-ds history likeds(AUDIT_HISTORY_T) dim(100);
 dcl-s count int(10);
@@ -158,18 +158,18 @@ endfor;
 
 ### `AuditLog_GetHistoryByDate(tableName : dateFrom : dateTo : history)`
 
-Récupère l'historique d'une table pour une période donnée.
+Retrieves the history of a table for a given period.
 
-**Paramètres:**
-- `tableName` (varchar(128)): Nom de la table
-- `dateFrom` (timestamp): Date de début
-- `dateTo` (timestamp): Date de fin
-- `history` (likeds(AUDIT_HISTORY_T) dim(1000)): Tableau pour stocker les résultats
+**Parameters:**
+- `tableName` (varchar(128)): Table name
+- `dateFrom` (timestamp): Start date
+- `dateTo` (timestamp): End date
+- `history` (likeds(AUDIT_HISTORY_T) dim(1000)): Array to store results
 
-**Retour:**
-- (int(10)): Nombre d'enregistrements trouvés
+**Return:**
+- (int(10)): Number of records found
 
-**Exemple:**
+**Example:**
 ```rpgle
 dcl-s dateFrom timestamp;
 dcl-s dateTo timestamp;
@@ -185,21 +185,21 @@ count = AuditLog_GetHistoryByDate('CUSTOMER' : dateFrom : dateTo : history);
 
 ### `AuditLog_GetHistoryByUser(tableName : userName : history)`
 
-Récupère toutes les opérations effectuées par un utilisateur.
+Retrieves all operations performed by a user.
 
-**Paramètres:**
-- `tableName` (varchar(128)): Nom de la table (ou '' pour toutes les tables)
-- `userName` (varchar(128)): Nom de l'utilisateur
-- `history` (likeds(AUDIT_HISTORY_T) dim(1000)): Tableau pour stocker les résultats
+**Parameters:**
+- `tableName` (varchar(128)): Table name (or '' for all tables)
+- `userName` (varchar(128)): User name
+- `history` (likeds(AUDIT_HISTORY_T) dim(1000)): Array to store results
 
-**Retour:**
-- (int(10)): Nombre d'enregistrements trouvés
+**Return:**
+- (int(10)): Number of records found
 
-**Exemple:**
+**Example:**
 ```rpgle
 count = AuditLog_GetHistoryByUser('CUSTOMER' : 'JOHNDOE' : history);
 
-// Toutes les tables
+// All tables
 count = AuditLog_GetHistoryByUser('' : 'JOHNDOE' : history);
 ```
 
@@ -209,25 +209,25 @@ count = AuditLog_GetHistoryByUser('' : 'JOHNDOE' : history);
 
 ### `AuditLog_Purge(retentionDays)`
 
-Purge les enregistrements d'audit antérieurs à la période de rétention.
+Purges audit records older than the retention period.
 
-**Paramètres:**
-- `retentionDays` (int(10)): Nombre de jours de rétention
+**Parameters:**
+- `retentionDays` (int(10)): Number of days to retain
 
-**Retour:**
-- (int(10)): Nombre d'enregistrements supprimés
+**Return:**
+- (int(10)): Number of records deleted
 
-**Exemple:**
+**Example:**
 ```rpgle
 dcl-s deletedCount int(10);
 
-// Supprimer les audits de plus de 7 ans (2555 jours)
+// Delete audits older than 7 years (2555 days)
 deletedCount = AuditLog_Purge(2555);
 
-dsply ('Enregistrements supprimés: ' + %char(deletedCount));
+dsply ('Records deleted: ' + %char(deletedCount));
 ```
 
-**Note:** Cette fonction doit être exécutée régulièrement (mensuellement ou annuellement) pour maintenir la performance.
+**Note:** This function should be executed regularly (monthly or annually) to maintain performance.
 
 ---
 
@@ -235,15 +235,15 @@ dsply ('Enregistrements supprimés: ' + %char(deletedCount));
 
 ### `AuditLog_SetConfig(config)`
 
-Configure les paramètres du système d'audit.
+Configures the audit system parameters.
 
-**Paramètres:**
-- `config` (likeds(AUDIT_CONFIG_T)): Structure de configuration
+**Parameters:**
+- `config` (likeds(AUDIT_CONFIG_T)): Configuration structure
 
-**Retour:**
-- (ind): `*ON` si succès, `*OFF` si erreur
+**Return:**
+- (ind): `*ON` if successful, `*OFF` if error
 
-**Exemple:**
+**Example:**
 ```rpgle
 dcl-ds config likeds(AUDIT_CONFIG_T);
 
@@ -251,7 +251,7 @@ config.active = *ON;
 config.asyncMode = *OFF;
 config.captureIP = *ON;
 config.captureJob = *ON;
-config.maxRetentionDays = 2555;  // 7 ans
+config.maxRetentionDays = 2555;  // 7 years
 config.compressionEnabled = *OFF;
 
 AuditLog_SetConfig(config);
@@ -261,15 +261,15 @@ AuditLog_SetConfig(config);
 
 ### `AuditLog_GetConfig(config)`
 
-Récupère la configuration actuelle.
+Retrieves the current configuration.
 
-**Paramètres:**
-- `config` (likeds(AUDIT_CONFIG_T)): Structure de configuration (retour)
+**Parameters:**
+- `config` (likeds(AUDIT_CONFIG_T)): Configuration structure (return)
 
-**Retour:**
-- (ind): `*ON` si succès, `*OFF` si erreur
+**Return:**
+- (ind): `*ON` if successful, `*OFF` if error
 
-**Exemple:**
+**Example:**
 ```rpgle
 dcl-ds config likeds(AUDIT_CONFIG_T);
 
@@ -281,16 +281,16 @@ dsply ('Async: ' + config.asyncMode);
 
 ---
 
-## Utilitaires
+## Utilities
 
 ### `AuditLog_GetCurrentUser()`
 
-Obtient le nom de l'utilisateur actuel.
+Gets the current user name.
 
-**Retour:**
-- (varchar(128)): Nom d'utilisateur
+**Return:**
+- (varchar(128)): User name
 
-**Exemple:**
+**Example:**
 ```rpgle
 dcl-s user varchar(128);
 user = AuditLog_GetCurrentUser();
@@ -300,12 +300,12 @@ user = AuditLog_GetCurrentUser();
 
 ### `AuditLog_GetCurrentIP()`
 
-Obtient l'adresse IP du client actuel.
+Gets the current client IP address.
 
-**Retour:**
-- (varchar(45)): Adresse IP
+**Return:**
+- (varchar(45)): IP address
 
-**Exemple:**
+**Example:**
 ```rpgle
 dcl-s ip varchar(45);
 ip = AuditLog_GetCurrentIP();
@@ -315,12 +315,12 @@ ip = AuditLog_GetCurrentIP();
 
 ### `AuditLog_GetJobName()`
 
-Obtient le nom du job actuel.
+Gets the current job name.
 
-**Retour:**
-- (varchar(28)): Nom du job
+**Return:**
+- (varchar(28)): Job name
 
-**Exemple:**
+**Example:**
 ```rpgle
 dcl-s job varchar(28);
 job = AuditLog_GetJobName();
@@ -328,11 +328,11 @@ job = AuditLog_GetJobName();
 
 ---
 
-## Structures de données
+## Data Structures
 
 ### `AUDIT_RECORD_T`
 
-Structure complète d'un enregistrement d'audit.
+Complete audit record structure.
 
 ```rpgle
 dcl-ds AUDIT_RECORD_T qualified template;
@@ -354,7 +354,7 @@ end-ds;
 
 ### `AUDIT_HISTORY_T`
 
-Structure simplifiée pour les résultats d'historique.
+Simplified structure for history results.
 
 ```rpgle
 dcl-ds AUDIT_HISTORY_T qualified template;
@@ -372,7 +372,7 @@ end-ds;
 
 ### `AUDIT_CONFIG_T`
 
-Structure de configuration.
+Configuration structure.
 
 ```rpgle
 dcl-ds AUDIT_CONFIG_T qualified template;
@@ -387,7 +387,7 @@ end-ds;
 
 ---
 
-## Constantes
+## Constants
 
 ```rpgle
 dcl-c AUDIT_OP_INSERT 'I';
@@ -397,9 +397,9 @@ dcl-c AUDIT_OP_DELETE 'D';
 
 ---
 
-## Codes SQL utilisés
+## SQL Examples
 
-### Recherche de modifications récentes
+### Search for recent changes
 ```sql
 SELECT * FROM AUDITLOG
 WHERE TABLE_NAME = 'CUSTOMER'
@@ -407,7 +407,7 @@ WHERE TABLE_NAME = 'CUSTOMER'
 ORDER BY TIMESTAMP DESC;
 ```
 
-### Statistiques d'audit par table
+### Audit statistics by table
 ```sql
 SELECT TABLE_NAME, OPERATION, COUNT(*) as NB_OPERATIONS
 FROM AUDITLOG
@@ -415,7 +415,7 @@ GROUP BY TABLE_NAME, OPERATION
 ORDER BY TABLE_NAME;
 ```
 
-### Utilisateurs les plus actifs
+### Most active users
 ```sql
 SELECT USER_NAME, COUNT(*) as NB_OPERATIONS
 FROM AUDITLOG

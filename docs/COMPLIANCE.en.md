@@ -1,38 +1,38 @@
-# Guide de Conformité - ibmi-audit-trail
+# Compliance Guide - ibmi-audit-trail
 
-**🇫🇷 Version française** | **[🇬🇧 English version](COMPLIANCE.en.md)**
+**[🇫🇷 Version française](COMPLIANCE.md)** | **🇬🇧 English version**
 
-Ce document explique comment utiliser `ibmi-audit-trail` pour répondre aux exigences des différentes réglementations.
+This document explains how to use `ibmi-audit-trail` to meet the requirements of various regulations.
 
-## 📋 Table des matières
+## 📋 Table of Contents
 
-- [RGPD (Règlement Général sur la Protection des Données)](#rgpd)
+- [GDPR (General Data Protection Regulation)](#gdpr)
 - [SOX (Sarbanes-Oxley Act)](#sox)
-- [ISO 27001 (Sécurité de l'information)](#iso-27001)
-- [Bonnes pratiques](#bonnes-pratiques)
+- [ISO 27001 (Information Security)](#iso-27001)
+- [Best Practices](#best-practices)
 
 ---
 
-## RGPD
+## GDPR
 
-### Article 30 : Registre des traitements
+### Article 30: Register of Processing Activities
 
-**Exigence:** Tenir un registre des activités de traitement.
+**Requirement:** Maintain a register of processing activities.
 
-**Solution avec ibmi-audit-trail:**
+**Solution with ibmi-audit-trail:**
 ```rpgle
-// Activer l'audit sur toutes les tables contenant des données personnelles
+// Enable audit on all tables containing personal data
 AuditLog_Init(*ON);
 
-// Auditer les opérations
+// Audit operations
 AuditLog_Insert('CONTACTS' : %addr(contact));
 AuditLog_Update('CONTACTS' : %addr(new) : %addr(old));
 AuditLog_Delete('CONTACTS' : %addr(contact));
 ```
 
-**Rapport de conformité:**
+**Compliance Report:**
 ```sql
--- Liste des opérations sur données personnelles
+-- List of operations on personal data
 SELECT 
   TABLE_NAME,
   OPERATION,
@@ -46,35 +46,35 @@ ORDER BY TIMESTAMP DESC;
 
 ---
 
-### Article 17 : Droit à l'effacement
+### Article 17: Right to Erasure
 
-**Exigence:** Possibilité de supprimer toutes les données d'une personne.
+**Requirement:** Ability to delete all data of a person.
 
 **Solution:**
 ```rpgle
-// 1. Logger la suppression
+// 1. Log the deletion
 AuditLog_Delete('CUSTOMERS' : %addr(customer));
 
-// 2. Effectuer la suppression
+// 2. Perform the deletion
 exec sql DELETE FROM CUSTOMERS WHERE ID = :customerId;
 
-// 3. Générer un rapport de suppression
+// 3. Generate a deletion report
 dcl-ds history likeds(AUDIT_HISTORY_T) dim(100);
 count = AuditLog_GetHistory('CUSTOMERS' : %char(customerId) : history);
 
-// 4. Conserver la preuve de suppression (durée légale)
-// L'audit reste dans AUDITLOG avec OLD_VALUES
+// 4. Keep proof of deletion (legal retention period)
+// The audit remains in AUDITLOG with OLD_VALUES
 ```
 
 ---
 
-### Article 33 : Notification de violation
+### Article 33: Breach Notification
 
-**Exigence:** Détecter et notifier les violations de données sous 72h.
+**Requirement:** Detect and notify data breaches within 72 hours.
 
 **Solution:**
 ```sql
--- Détection d'accès suspects
+-- Detection of suspicious access
 SELECT 
   USER_NAME,
   COUNT(*) as NB_ACCESS,
@@ -84,9 +84,9 @@ FROM AUDITLOG
 WHERE TABLE_NAME = 'CUSTOMERS'
   AND TIMESTAMP >= CURRENT_TIMESTAMP - 24 HOURS
 GROUP BY USER_NAME
-HAVING COUNT(*) > 1000;  -- Seuil d'alerte
+HAVING COUNT(*) > 1000;  -- Alert threshold
 
--- Accès hors heures ouvrables
+-- Access outside business hours
 SELECT * FROM AUDITLOG
 WHERE HOUR(TIMESTAMP) NOT BETWEEN 8 AND 18
   AND DAYOFWEEK(TIMESTAMP) BETWEEN 2 AND 6;
@@ -94,13 +94,13 @@ WHERE HOUR(TIMESTAMP) NOT BETWEEN 8 AND 18
 
 ---
 
-### Article 35 : Analyse d'impact (DPIA)
+### Article 35: Data Protection Impact Assessment (DPIA)
 
-**Exigence:** Documentation des traitements à risque.
+**Requirement:** Documentation of high-risk processing.
 
-**Rapport automatique:**
+**Automatic Report:**
 ```sql
--- Analyse des opérations par type
+-- Analysis of operations by type
 SELECT 
   TABLE_NAME,
   OPERATION,
@@ -118,26 +118,26 @@ ORDER BY TOTAL DESC;
 
 ## SOX
 
-### Section 302 : Certification des rapports financiers
+### Section 302: Certification of Financial Reports
 
-**Exigence:** Trail d'audit complet des données financières.
+**Requirement:** Complete audit trail of financial data.
 
 **Solution:**
 ```rpgle
-// Auditer toutes les tables financières
+// Audit all financial tables
 AuditLog_Init(*ON);
 
-// Exemple: Factures
+// Example: Invoices
 AuditLog_Insert('INVOICES' : %addr(invoice));
 AuditLog_Update('INVOICES' : %addr(new) : %addr(old));
 
-// Exemple: Paiements
+// Example: Payments
 AuditLog_Insert('PAYMENTS' : %addr(payment));
 ```
 
-**Rapport de conformité SOX:**
+**SOX Compliance Report:**
 ```sql
--- Toutes les modifications de données financières
+-- All modifications to financial data
 CREATE VIEW SOX_AUDIT_TRAIL AS
 SELECT 
   A.ID,
@@ -159,13 +159,13 @@ ORDER BY A.TIMESTAMP DESC;
 
 ---
 
-### Section 404 : Contrôles internes
+### Section 404: Internal Controls
 
-**Exigence:** Documentation des contrôles et des changements.
+**Requirement:** Documentation of controls and changes.
 
-**Séparation des tâches:**
+**Segregation of Duties:**
 ```sql
--- Vérifier qu'un utilisateur ne peut pas créer ET approuver
+-- Verify that a user cannot both create AND approve
 WITH user_ops AS (
   SELECT 
     RECORD_KEY,
@@ -179,47 +179,47 @@ SELECT
   STRING_AGG(DISTINCT USER_NAME, ', ') as USERS
 FROM user_ops
 GROUP BY RECORD_KEY
-HAVING COUNT(DISTINCT USER_NAME) = 1;  -- Alerte: même utilisateur
+HAVING COUNT(DISTINCT USER_NAME) = 1;  -- Alert: same user
 ```
 
 ---
 
-### Section 802 : Rétention des documents
+### Section 802: Document Retention
 
-**Exigence:** Conservation des audits pendant 7 ans.
+**Requirement:** Retain audits for 7 years.
 
 **Configuration:**
 ```rpgle
 dcl-ds config likeds(AUDIT_CONFIG_T);
 
 config.active = *ON;
-config.maxRetentionDays = 2555;  // 7 ans
+config.maxRetentionDays = 2555;  // 7 years
 
 AuditLog_SetConfig(config);
 ```
 
-**Purge automatique:**
+**Automatic Purge:**
 ```rpgle
-// Job mensuel de purge
+// Monthly purge job
 dcl-s deleted int(10);
 
-// Ne garder que 7 ans
+// Keep only 7 years
 deleted = AuditLog_Purge(2555);
 
-dsply ('Audits purgés: ' + %char(deleted));
+dsply ('Purged audits: ' + %char(deleted));
 ```
 
 ---
 
 ## ISO 27001
 
-### A.9 : Contrôle d'accès
+### A.9: Access Control
 
-**Exigence:** Traçabilité des accès aux informations.
+**Requirement:** Traceability of information access.
 
 **Solution:**
 ```sql
--- Rapport d'accès par utilisateur
+-- Access report by user
 SELECT 
   USER_NAME,
   TABLE_NAME,
@@ -234,31 +234,31 @@ ORDER BY NB_ACCESS DESC;
 
 ---
 
-### A.12 : Sécurité des opérations
+### A.12: Operations Security
 
-**Exigence:** Journalisation des événements.
+**Requirement:** Event logging.
 
-**Configuration complète:**
+**Complete Configuration:**
 ```rpgle
 dcl-ds config likeds(AUDIT_CONFIG_T);
 
 config.active = *ON;
-config.captureIP = *ON;      // Tracer l'IP
-config.captureJob = *ON;     // Tracer le job
-config.asyncMode = *OFF;     // Synchrone pour garantir l'écriture
+config.captureIP = *ON;      // Trace IP
+config.captureJob = *ON;     // Trace job
+config.asyncMode = *OFF;     // Synchronous to ensure write
 
 AuditLog_SetConfig(config);
 ```
 
 ---
 
-### A.16 : Gestion des incidents
+### A.16: Incident Management
 
-**Exigence:** Capacité d'investigation.
+**Requirement:** Investigation capability.
 
-**Enquête sur incident:**
+**Incident Investigation:**
 ```sql
--- Exemple: Qui a modifié ce client le 15 décembre?
+-- Example: Who modified this customer on December 15?
 SELECT 
   USER_NAME,
   OPERATION,
@@ -276,12 +276,12 @@ ORDER BY TIMESTAMP;
 
 ---
 
-## Bonnes pratiques
+## Best Practices
 
-### 1. Activation sélective
+### 1. Selective Activation
 
 ```rpgle
-// N'auditer que les tables sensibles
+// Audit only sensitive tables
 dcl-s auditTables varchar(50) dim(10);
 
 auditTables(1) = 'CUSTOMERS';
@@ -290,7 +290,7 @@ auditTables(3) = 'PAYMENTS';
 auditTables(4) = 'EMPLOYEES';
 auditTables(5) = 'CONTRACTS';
 
-// Auditer uniquement ces tables
+// Audit only these tables
 if %lookup(tableName : auditTables) > 0;
   AuditLog_Insert(tableName : %addr(record));
 endif;
@@ -298,11 +298,11 @@ endif;
 
 ---
 
-### 2. Rapports réguliers
+### 2. Regular Reports
 
-**Job mensuel de rapport:**
+**Monthly Report Job:**
 ```rpgle
-// Générer un rapport mensuel pour la direction
+// Generate a monthly report for management
 dcl-s report varchar(1000);
 
 exec sql 
@@ -316,15 +316,15 @@ exec sql
   FROM AUDITLOG
   WHERE TIMESTAMP >= CURRENT_DATE - 30 DAYS;
 
-// Envoyer par email ou sauvegarder dans l'IFS
+// Send by email or save to IFS
 ```
 
 ---
 
-### 3. Alertes automatiques
+### 3. Automatic Alerts
 
 ```sql
--- Créer une vue pour alertes
+-- Create a view for alerts
 CREATE VIEW AUDIT_ALERTS AS
 SELECT 
   'VOLUME_ANORMAL' as ALERT_TYPE,
@@ -334,64 +334,64 @@ SELECT
 FROM AUDITLOG
 WHERE TIMESTAMP >= CURRENT_TIMESTAMP - 1 HOUR
 GROUP BY USER_NAME
-HAVING COUNT(*) > 100;  -- Seuil configurable
+HAVING COUNT(*) > 100;  -- Configurable threshold
 ```
 
 ---
 
-### 4. Protection de la table d'audit
+### 4. Audit Table Protection
 
 ```sql
--- Créer un rôle dédié pour l'audit
+-- Create a dedicated role for audit
 CREATE ROLE AUDIT_ADMIN;
 
--- Accès lecture seule pour les autres
+-- Read-only access for others
 GRANT SELECT ON AUDITLOG TO PUBLIC;
 
--- Seul AUDIT_ADMIN peut modifier
+-- Only AUDIT_ADMIN can modify
 GRANT ALL ON AUDITLOG TO AUDIT_ADMIN;
 REVOKE DELETE, UPDATE ON AUDITLOG FROM PUBLIC;
 ```
 
 ---
 
-### 5. Archivage à long terme
+### 5. Long-term Archiving
 
 ```rpgle
-// Archiver les audits de plus d'1 an dans une table d'archive
+// Archive audits older than 1 year to an archive table
 exec sql 
   INSERT INTO AUDITLOG_ARCHIVE
   SELECT * FROM AUDITLOG
   WHERE TIMESTAMP < CURRENT_DATE - 365 DAYS;
 
-// Puis purger la table principale
+// Then purge the main table
 AuditLog_Purge(365);
 ```
 
 ---
 
-## Checklist de conformité
+## Compliance Checklist
 
-### RGPD
-- ✅ Traçabilité complète des opérations (Article 30)
-- ✅ Preuve de suppression (Article 17)
-- ✅ Détection de violations (Article 33)
-- ✅ Documentation DPIA (Article 35)
+### GDPR
+- ✅ Complete traceability of operations (Article 30)
+- ✅ Proof of deletion (Article 17)
+- ✅ Breach detection (Article 33)
+- ✅ DPIA documentation (Article 35)
 
 ### SOX
-- ✅ Trail d'audit financier (Section 302)
-- ✅ Contrôles internes (Section 404)
-- ✅ Rétention 7 ans (Section 802)
+- ✅ Financial audit trail (Section 302)
+- ✅ Internal controls (Section 404)
+- ✅ 7-year retention (Section 802)
 
 ### ISO 27001
-- ✅ Contrôle d'accès (A.9)
-- ✅ Journalisation (A.12)
-- ✅ Investigation d'incidents (A.16)
+- ✅ Access control (A.9)
+- ✅ Event logging (A.12)
+- ✅ Incident investigation (A.16)
 
 ---
 
 ## Support
 
-Pour toute question sur la conformité, consultez :
-- [Documentation API](API.md)
-- [Issues GitHub](https://github.com/IBMiservices/ibmi-audit-trail/issues)
+For any questions about compliance, consult:
+- [API Documentation](API.en.md)
+- [GitHub Issues](https://github.com/IBMiservices/ibmi-audit-trail/issues)

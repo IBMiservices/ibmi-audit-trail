@@ -5,6 +5,8 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Versioning Sémantique](https://semver.org/lang/fr/).
 
+**🇫🇷 Version française** | **[🇬🇧 English version](CHANGELOG.en.md)**
+
 ## [Non publié]
 
 ### À venir
@@ -38,7 +40,7 @@ et ce projet adhère au [Versioning Sémantique](https://semver.org/lang/fr/).
 ### Infrastructure
 - Configuration VS Code (.vscode/)
 - Tasks de build
-- iproj.json pour BOB
+- iproj.json pour Tobi
 - Rules.mk pour compilation
 - dependencies.json vide (pas de dépendances)
 
