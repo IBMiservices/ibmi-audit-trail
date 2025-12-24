@@ -1,0 +1,48 @@
+# .gitignore pour ibmi-audit-trail
+
+# Objets compilés IBM i
+*.PGM
+*.SRVPGM
+*.MODULE
+*.BNDDIR
+
+# Fichiers temporaires
+*.tmp
+*.bak
+*~
+
+# Logs
+*.log
+*.evfevent
+
+# VS Code
+.vscode-deps/
+!.vscode-deps/README.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+env/
+venv/
+*.egg-info/
+
+# Dépendances téléchargées
+dep/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+*.swp
+*.swo
+.project
+.settings/
+
+# Build
+build/
+dist/

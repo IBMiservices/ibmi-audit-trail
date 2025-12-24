@@ -1,0 +1,50 @@
+{
+  "version": "0.2.0",
+  "tasks": [
+    {
+      "label": "Build ibmi-audit-trail",
+      "type": "shell",
+      "command": "gmake",
+      "args": [
+        "-f",
+        "Rules.mk"
+      ],
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Build demo",
+      "type": "shell",
+      "command": "gmake",
+      "args": [
+        "-f",
+        "Rules.mk",
+        "demo"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Clean",
+      "type": "shell",
+      "command": "gmake",
+      "args": [
+        "-f",
+        "Rules.mk",
+        "clean"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Install dependencies",
+      "type": "shell",
+      "command": "python",
+      "args": [
+        "${workspaceFolder}/.vscode-deps/install_deps.py"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

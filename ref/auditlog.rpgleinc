@@ -1,0 +1,244 @@
+**FREE
+
+//==============================================================================
+// ibmi-audit-trail - Audit Log System
+// Fichier: auditlog.rpgleinc
+// Description: Prototypes et structures de données pour le système d'audit
+//==============================================================================
+
+/if not defined(AUDITLOG_H)
+/define AUDITLOG_H
+
+// Constantes
+dcl-c AUDIT_OP_INSERT 'I';
+dcl-c AUDIT_OP_UPDATE 'U';
+dcl-c AUDIT_OP_DELETE 'D';
+
+dcl-c AUDIT_MAX_TABLE_NAME 128;
+dcl-c AUDIT_MAX_KEY 1024;
+dcl-c AUDIT_MAX_USER 128;
+dcl-c AUDIT_MAX_IP 45;
+dcl-c AUDIT_MAX_PROGRAM 10;
+dcl-c AUDIT_MAX_JOB 28;
+dcl-c AUDIT_MAX_JSON 10485760;  // 10MB
+
+//------------------------------------------------------------------------------
+// Structure: Enregistrement d'audit
+//------------------------------------------------------------------------------
+dcl-ds AUDIT_RECORD_T qualified template;
+  id bigint(20);
+  tableName varchar(128);
+  recordKey varchar(1024);
+  operation char(1);
+  userName varchar(128);
+  timestamp timestamp;
+  oldValues varchar(10485760:4);  // CLOB
+  newValues varchar(10485760:4);  // CLOB
+  ipAddress varchar(45);
+  programName varchar(10);
+  jobName varchar(28);
+end-ds;
+
+//------------------------------------------------------------------------------
+// Structure: Historique pour retour
+//------------------------------------------------------------------------------
+dcl-ds AUDIT_HISTORY_T qualified template;
+  id bigint(20);
+  operation char(1);
+  userName varchar(128);
+  timestamp timestamp;
+  oldValues varchar(10485760:4);
+  newValues varchar(10485760:4);
+  programName varchar(10);
+end-ds;
+
+//------------------------------------------------------------------------------
+// Structure: Options de configuration
+//------------------------------------------------------------------------------
+dcl-ds AUDIT_CONFIG_T qualified template;
+  active ind;
+  asyncMode ind;
+  captureIP ind;
+  captureJob ind;
+  maxRetentionDays int(10);
+  compressionEnabled ind;
+end-ds;
+
+//==============================================================================
+// PROTOTYPES - Fonctions principales
+//==============================================================================
+
+//------------------------------------------------------------------------------
+// AuditLog_Init - Initialise le système d'audit
+// Paramètres:
+//   active: *ON pour activer, *OFF pour désactiver
+// Retour: *ON si succès, *OFF si erreur
+//------------------------------------------------------------------------------
+dcl-pr AuditLog_Init ind;
+  active ind const;
+end-pr;
+
+//------------------------------------------------------------------------------
+// AuditLog_CreateTable - Crée la table AUDITLOG
+// Retour: *ON si succès, *OFF si erreur
+//------------------------------------------------------------------------------
+dcl-pr AuditLog_CreateTable ind;
+end-pr;
+
+//------------------------------------------------------------------------------
+// AuditLog_Insert - Enregistre une opération INSERT
+// Paramètres:
+//   tableName: Nom de la table
+//   record: Structure de données de l'enregistrement
+// Retour: *ON si succès, *OFF si erreur
+//------------------------------------------------------------------------------
+dcl-pr AuditLog_Insert ind;
+  tableName varchar(128) const;
+  record pointer const options(*string);
+end-pr;
+
+//------------------------------------------------------------------------------
+// AuditLog_Update - Enregistre une opération UPDATE
+// Paramètres:
+//   tableName: Nom de la table
+//   newRecord: Nouvelle valeur
+//   oldRecord: Ancienne valeur
+// Retour: *ON si succès, *OFF si erreur
+//------------------------------------------------------------------------------
+dcl-pr AuditLog_Update ind;
+  tableName varchar(128) const;
+  newRecord pointer const options(*string);
+  oldRecord pointer const options(*string);
+end-pr;
+
+//------------------------------------------------------------------------------
+// AuditLog_Delete - Enregistre une opération DELETE
+// Paramètres:
+//   tableName: Nom de la table
+//   record: Structure de données de l'enregistrement
+// Retour: *ON si succès, *OFF si erreur
+//------------------------------------------------------------------------------
+dcl-pr AuditLog_Delete ind;
+  tableName varchar(128) const;
+  record pointer const options(*string);
+end-pr;
+
+//------------------------------------------------------------------------------
+// AuditLog_GetHistory - Récupère l'historique d'un enregistrement
+// Paramètres:
+//   tableName: Nom de la table
+//   recordKey: Clé de l'enregistrement (JSON pour clés composites)
+//   history: Tableau de structures AUDIT_HISTORY_T
+// Retour: Nombre d'enregistrements trouvés
+//------------------------------------------------------------------------------
+dcl-pr AuditLog_GetHistory int(10);
+  tableName varchar(128) const;
+  recordKey varchar(1024) const;
+  history likeds(AUDIT_HISTORY_T) dim(1000);
+end-pr;
+
+//------------------------------------------------------------------------------
+// AuditLog_GetHistoryByDate - Récupère l'historique par période
+// Paramètres:
+//   tableName: Nom de la table
+//   dateFrom: Date de début
+//   dateTo: Date de fin
+//   history: Tableau de structures AUDIT_HISTORY_T
+// Retour: Nombre d'enregistrements trouvés
+//------------------------------------------------------------------------------
+dcl-pr AuditLog_GetHistoryByDate int(10);
+  tableName varchar(128) const;
+  dateFrom timestamp const;
+  dateTo timestamp const;
+  history likeds(AUDIT_HISTORY_T) dim(1000);
+end-pr;
+
+//------------------------------------------------------------------------------
+// AuditLog_GetHistoryByUser - Récupère l'historique par utilisateur
+// Paramètres:
+//   tableName: Nom de la table (ou '' pour toutes)
+//   userName: Nom de l'utilisateur
+//   history: Tableau de structures AUDIT_HISTORY_T
+// Retour: Nombre d'enregistrements trouvés
+//------------------------------------------------------------------------------
+dcl-pr AuditLog_GetHistoryByUser int(10);
+  tableName varchar(128) const;
+  userName varchar(128) const;
+  history likeds(AUDIT_HISTORY_T) dim(1000);
+end-pr;
+
+//------------------------------------------------------------------------------
+// AuditLog_Purge - Purge les anciennes données d'audit
+// Paramètres:
+//   retentionDays: Nombre de jours de rétention
+// Retour: Nombre d'enregistrements supprimés
+//------------------------------------------------------------------------------
+dcl-pr AuditLog_Purge int(10);
+  retentionDays int(10) const;
+end-pr;
+
+//------------------------------------------------------------------------------
+// AuditLog_SetConfig - Configure le système d'audit
+// Paramètres:
+//   config: Structure de configuration
+// Retour: *ON si succès, *OFF si erreur
+//------------------------------------------------------------------------------
+dcl-pr AuditLog_SetConfig ind;
+  config likeds(AUDIT_CONFIG_T) const;
+end-pr;
+
+//------------------------------------------------------------------------------
+// AuditLog_GetConfig - Récupère la configuration actuelle
+// Paramètres:
+//   config: Structure de configuration (retour)
+// Retour: *ON si succès, *OFF si erreur
+//------------------------------------------------------------------------------
+dcl-pr AuditLog_GetConfig ind;
+  config likeds(AUDIT_CONFIG_T);
+end-pr;
+
+//==============================================================================
+// PROTOTYPES - Fonctions utilitaires
+//==============================================================================
+
+//------------------------------------------------------------------------------
+// AuditLog_RecordToJSON - Convertit une structure en JSON
+// Paramètres:
+//   record: Pointeur vers la structure
+//   json: JSON résultant
+// Retour: *ON si succès, *OFF si erreur
+//------------------------------------------------------------------------------
+dcl-pr AuditLog_RecordToJSON ind;
+  record pointer const options(*string);
+  json varchar(10485760:4);
+end-pr;
+
+//------------------------------------------------------------------------------
+// AuditLog_GetCurrentUser - Obtient l'utilisateur actuel
+// Retour: Nom d'utilisateur
+//------------------------------------------------------------------------------
+dcl-pr AuditLog_GetCurrentUser varchar(128);
+end-pr;
+
+//------------------------------------------------------------------------------
+// AuditLog_GetCurrentIP - Obtient l'adresse IP du client
+// Retour: Adresse IP
+//------------------------------------------------------------------------------
+dcl-pr AuditLog_GetCurrentIP varchar(45);
+end-pr;
+
+//------------------------------------------------------------------------------
+// AuditLog_GetJobName - Obtient le nom du job actuel
+// Retour: Nom du job
+//------------------------------------------------------------------------------
+dcl-pr AuditLog_GetJobName varchar(28);
+end-pr;
+
+//------------------------------------------------------------------------------
+// AuditLog_GetProgramName - Obtient le nom du programme appelant
+// Retour: Nom du programme
+//------------------------------------------------------------------------------
+dcl-pr AuditLog_GetProgramName varchar(10);
+end-pr;
+
+/endif

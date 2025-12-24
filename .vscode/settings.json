@@ -1,0 +1,10 @@
+{
+  "files.associations": {
+    "*.rpgle": "rpgle",
+    "*.rpgleinc": "rpgle",
+    "*.bnd": "rpgle"
+  },
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "files.encoding": "utf8"
+}
