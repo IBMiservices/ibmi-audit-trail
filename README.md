@@ -2,6 +2,8 @@
 
 Système d'audit automatique pour IBM i - Traçabilité complète des modifications de données.
 
+**🇫🇷 Version française** | **[🇬🇧 English version](README.en.md)**
+
 ## 🎯 Objectif
 
 Fournir une solution complète et réutilisable pour auditer automatiquement toutes les opérations de modification (INSERT, UPDATE, DELETE) sur les tables DB2 for i, avec conformité RGPD, SOX et ISO 27001.
