@@ -31,7 +31,7 @@ dcl-proc Main;
   dcl-s success ind;
   dcl-ds customer likeds(CUSTOMER_T);
   dcl-ds oldCustomer likeds(CUSTOMER_T);
-  dcl-ds history likeds(AUDIT_HISTORY_T) dim(100);
+  dcl-ds history likeds(AUDIT_HISTORY_T) dim(1000);
   dcl-s historyCount int(10);
   dcl-s i int(10);
 
@@ -92,8 +92,7 @@ dcl-proc Main;
 
   for i = 1 to historyCount;
     dsply ('Op: ' + history(i).operation + 
-           ' User: ' + history(i).userName + 
-           ' Date: ' + %char(history(i).timestamp));
+           ' User: ' + history(i).userName);
   endfor;
 
   // 6. Simuler un DELETE

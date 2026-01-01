@@ -1,1 +1,28 @@
-{}
+{
+  "$schema": "./schema/dependencies.schema.json",
+  "name": "ibmi-audit-trail",
+  "version": "1.0.0",
+  "description": "Système d'audit automatique pour IBM i - Traçabilité complète des modifications de données.",
+  "author": "IBMiservices",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IBMiservices/ibmi-audit-trail.git"
+  },
+  "dependencies": {
+    "logfori": {
+      "repository": "https://github.com/IBMiservices/logfori.git",
+      "version": "^1.0.0",
+      "ref": "v1.0.0"
+    }
+  },
+  "devDependencies": {},
+  "config": {
+    "targetDir": "dep",
+    "cleanGit": true,
+    "cleanDocs": true,
+    "updateBuildFiles": true,
+    "recursiveDependencies": true
+  }
+}
+ 

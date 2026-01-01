@@ -1,0 +1,3 @@
+/* because the CRTBNDDIR will fail the second time and only the ADDBNDDIRE is executed */     
+!CRTBNDDIR BNDDIR(&O/&N)
+ADDBNDDIRE BNDDIR(&O/&N) OBJ((*LIBL/AUDITLOG *SRVPGM *DEFER))

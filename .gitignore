@@ -46,3 +46,7 @@ desktop.ini
 # Build
 build/
 dist/
+.env
+
+.logs
+.evfevent

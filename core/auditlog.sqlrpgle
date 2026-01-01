@@ -7,11 +7,11 @@
 //==============================================================================
 
 ctl-opt nomain thread(*concurrent);
-ctl-opt option(*srcstmt: *nodebugio);
+ctl-opt option(*srcstmt:*SHOWCPY:*EXT:*XREF:*SECLVL:*DEBUGIO:*EXPDDS);
 
 /include 'auditlog.rpgleinc'
 
-//==============================================================================
+//============e==================================================================
 // Variables globales
 //==============================================================================
 dcl-s gAuditActive ind inz(*OFF);
@@ -106,7 +106,7 @@ dcl-proc AuditLog_Insert export;
     tableName :
     '' :  // recordKey à extraire du record
     AUDIT_OP_INSERT :
-    '' :  // oldValues
+    *NULL :  // oldValues
     record
   );
 end-proc;
@@ -152,7 +152,7 @@ dcl-proc AuditLog_Delete export;
     '' :  // recordKey à extraire du record
     AUDIT_OP_DELETE :
     record :
-    ''
+    *NULL
   );
 end-proc;
 
@@ -167,44 +167,52 @@ dcl-proc AuditLog_GetHistory export;
   end-pi;
 
   dcl-s count int(10) inz(0);
-  dcl-s i int(10);
+  dcl-s i int(10) inz(0);
+  dcl-s id int(20);
+  dcl-s operation char(1);
+  dcl-s userName varchar(128);
+  dcl-s timestamp_ timestamp;
+  dcl-s oldValues sqltype(CLOB_LOCATOR);
+  dcl-s newValues sqltype(CLOB_LOCATOR);
+  dcl-s programName varchar(10);
 
   exec sql DECLARE C1 CURSOR FOR
-    SELECT ID, OPERATION, USER_NAME, TIMESTAMP,
-           OLD_VALUES, NEW_VALUES, PROGRAM_NAME
-    FROM AUDITLOG
-    WHERE TABLE_NAME = :tableName
-      AND RECORD_KEY = :recordKey
-    ORDER BY TIMESTAMP DESC
-    FETCH FIRST 1000 ROWS ONLY;
+      SELECT ID, OPERATION, USER_NAME, TIMESTAMP,
+            OLD_VALUES, NEW_VALUES, PROGRAM_NAME
+      FROM AUDITLOG
+      WHERE TABLE_NAME = :tableName
+        AND RECORD_KEY = :recordKey
+      ORDER BY TIMESTAMP
+      FOR READ ONLY;
 
   exec sql OPEN C1;
 
-  exec sql FETCH C1 INTO 
-    :history(count + 1).id,
-    :history(count + 1).operation,
-    :history(count + 1).userName,
-    :history(count + 1).timestamp,
-    :history(count + 1).oldValues,
-    :history(count + 1).newValues,
-    :history(count + 1).programName;
+  exec sql FETCH C1 INTO :id,
+                         :operation,
+                         :userName,
+                         :timestamp_,
+                         :oldValues,
+                         :newValues,
+                         :programName;
 
-  dow sqlcode = 0;
-    count += 1;
-    
-    if count >= 1000;
+  dow sqlstate < '02000';
+    i += 1;
+    if i > 1000;
       leave;
     endif;
+    history(i).id = id;
+    history(i).operation = operation;
+    history(i).userName = userName;
+    history(i).timestamp = timestamp_;
+    history(i).oldValues = oldValues;
+    history(i).newValues = newValues;
+    history(i).programName = programName;
     
-    exec sql FETCH C1 INTO 
-      :history(count + 1).id,
-      :history(count + 1).operation,
-      :history(count + 1).userName,
-      :history(count + 1).timestamp,
-      :history(count + 1).oldValues,
-      :history(count + 1).newValues,
-      :history(count + 1).programName;
+    exec sql FETCH C1 INTO :id, :operation, :userName, :timestamp_,
+                          :oldValues, :newValues, :programName;
   enddo;
+
+  count = i;
 
   exec sql CLOSE C1;
 
@@ -223,6 +231,14 @@ dcl-proc AuditLog_GetHistoryByDate export;
   end-pi;
 
   dcl-s count int(10) inz(0);
+  dcl-s i int(10) inz(0);
+  dcl-s id int(20);
+  dcl-s operation char(1);
+  dcl-s userName varchar(128);
+  dcl-s timestamp_ timestamp;
+  dcl-s oldValues sqltype(CLOB_LOCATOR);
+  dcl-s newValues sqltype(CLOB_LOCATOR);
+  dcl-s programName varchar(10);
 
   exec sql DECLARE C2 CURSOR FOR
     SELECT ID, OPERATION, USER_NAME, TIMESTAMP,
@@ -231,35 +247,36 @@ dcl-proc AuditLog_GetHistoryByDate export;
     WHERE TABLE_NAME = :tableName
       AND TIMESTAMP BETWEEN :dateFrom AND :dateTo
     ORDER BY TIMESTAMP DESC
-    FETCH FIRST 1000 ROWS ONLY;
+    FOR READ ONLY;
 
   exec sql OPEN C2;
 
-  exec sql FETCH C2 INTO 
-    :history(count + 1).id,
-    :history(count + 1).operation,
-    :history(count + 1).userName,
-    :history(count + 1).timestamp,
-    :history(count + 1).oldValues,
-    :history(count + 1).newValues,
-    :history(count + 1).programName;
+  exec sql FETCH C2 INTO :id,
+                         :operation,
+                         :userName,
+                         :timestamp_,
+                         :oldValues,
+                         :newValues,
+                         :programName;
 
-  dow sqlcode = 0;
-    count += 1;
-    
-    if count >= 1000;
+  dow sqlstate < '02000';
+    i += 1;
+    if i > 1000;
       leave;
     endif;
+    history(i).id = id;
+    history(i).operation = operation;
+    history(i).userName = userName;
+    history(i).timestamp = timestamp_;
+    history(i).oldValues = oldValues;
+    history(i).newValues = newValues;
+    history(i).programName = programName;
     
-    exec sql FETCH C2 INTO 
-      :history(count + 1).id,
-      :history(count + 1).operation,
-      :history(count + 1).userName,
-      :history(count + 1).timestamp,
-      :history(count + 1).oldValues,
-      :history(count + 1).newValues,
-      :history(count + 1).programName;
+    exec sql FETCH C2 INTO :id, :operation, :userName, :timestamp_,
+                          :oldValues, :newValues, :programName;
   enddo;
+
+  count = i;
 
   exec sql CLOSE C2;
 
@@ -272,11 +289,19 @@ end-proc;
 dcl-proc AuditLog_GetHistoryByUser export;
   dcl-pi *N int(10);
     tableName varchar(128) const;
-    userName varchar(128) const;
+    pUserName varchar(128) const;
     history likeds(AUDIT_HISTORY_T) dim(1000);
   end-pi;
 
   dcl-s count int(10) inz(0);
+  dcl-s i int(10) inz(0);
+  dcl-s id int(20);
+  dcl-s operation char(1);
+  dcl-s userName varchar(128);
+  dcl-s timestamp_ timestamp;
+  dcl-s oldValues sqltype(CLOB_LOCATOR);
+  dcl-s newValues sqltype(CLOB_LOCATOR);
+  dcl-s programName varchar(10);
   dcl-s whereClause varchar(256);
 
   if tableName <> '';
@@ -289,37 +314,38 @@ dcl-proc AuditLog_GetHistoryByUser export;
     SELECT ID, OPERATION, USER_NAME, TIMESTAMP,
            OLD_VALUES, NEW_VALUES, PROGRAM_NAME
     FROM AUDITLOG
-    WHERE USER_NAME = :userName
+    WHERE USER_NAME = :pUserName
     ORDER BY TIMESTAMP DESC
-    FETCH FIRST 1000 ROWS ONLY;
+    FOR READ ONLY;
 
   exec sql OPEN C3;
 
-  exec sql FETCH C3 INTO 
-    :history(count + 1).id,
-    :history(count + 1).operation,
-    :history(count + 1).userName,
-    :history(count + 1).timestamp,
-    :history(count + 1).oldValues,
-    :history(count + 1).newValues,
-    :history(count + 1).programName;
+  exec sql FETCH C3 INTO :id,
+                         :operation,
+                         :userName,
+                         :timestamp_,
+                         :oldValues,
+                         :newValues,
+                         :programName;
 
-  dow sqlcode = 0;
-    count += 1;
-    
-    if count >= 1000;
+  dow sqlstate < '02000';
+    i += 1;
+    if i > 1000;
       leave;
     endif;
+    history(i).id = id;
+    history(i).operation = operation;
+    history(i).userName = userName;
+    history(i).timestamp = timestamp_;
+    history(i).oldValues = oldValues;
+    history(i).newValues = newValues;
+    history(i).programName = programName;
     
-    exec sql FETCH C3 INTO 
-      :history(count + 1).id,
-      :history(count + 1).operation,
-      :history(count + 1).userName,
-      :history(count + 1).timestamp,
-      :history(count + 1).oldValues,
-      :history(count + 1).newValues,
-      :history(count + 1).programName;
+    exec sql FETCH C3 INTO :id, :operation, :userName, :timestamp_,
+                          :oldValues, :newValues, :programName;
   enddo;
+
+  count = i;
 
   exec sql CLOSE C3;
 
@@ -401,8 +427,11 @@ dcl-proc AuditLog_GetCurrentIP export;
 
   dcl-s ipAddress varchar(45);
 
-  exec sql SET :ipAddress = QSYS2.CLIENT_IPADDR;
-
+  exec sql 
+      SELECT SYSIBM.CLIENT_IPADDR 
+        into :ipAddress 
+        FROM SYSIBM.SYSDUMMY1;
+        
   if sqlcode <> 0;
     ipAddress = '';
   endif;
@@ -446,12 +475,12 @@ end-proc;
 dcl-proc AuditLog_RecordToJSON export;
   dcl-pi *N ind;
     record pointer const options(*string);
-    json varchar(10485760:4);
+    json sqltype(CLOB_LOCATOR);
   end-pi;
 
   // TODO: Implémentation avec ibmi-json ou YAJL
-  // Pour l'instant, retourner simple format
-  json = '{}';
+  // Pour l'instant, créer un CLOB temporaire et assigner au locator
+  EXEC SQL SET :json = '{}';
 
   return *ON;
 end-proc;
@@ -476,8 +505,8 @@ dcl-proc WriteAuditRecord;
   dcl-s ipAddress varchar(45);
   dcl-s jobName varchar(28);
   dcl-s programName varchar(10);
-  dcl-s oldJson varchar(10485760:4);
-  dcl-s newJson varchar(10485760:4);
+  dcl-s oldJson sqltype(CLOB_LOCATOR);
+  dcl-s newJson sqltype(CLOB_LOCATOR);
 
   // Collecter les métadonnées
   userName = AuditLog_GetCurrentUser();

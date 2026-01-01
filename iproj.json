@@ -1,13 +1,10 @@
 {
-  "version": "2.0.0",
-  "objlib": "&CURLIB",
-  "curlib": "&BUILDLIB",
-  "buildLibrary": "AUDITLOG",
-  "includePath": ["ref"],
-  "preUsrlibl": [],
-  "postUsrlibl": [],
-  "setIBMiEnvCmd": [],
-  "repository": "https://github.com/IBMiservices/ibmi-audit-trail",
-  "license": "GPL-3.0",
-  "description": "Système d'audit automatique pour IBM i"
+  "description": "Système d'audit automatique pour IBM i - Traçabilité complète des modifications de données.",
+  "curlib": "&CURLIB",
+  "preUsrlibl": [
+    "olivier2"
+  ],
+  "includePath": [
+    "ref"
+  ]
 }

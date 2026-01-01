@@ -1,0 +1,6 @@
+
+AUDITLOG.MODULE: auditlog.sqlrpgle ref/auditlog.rpgleinc
+
+AUDITLOG.SRVPGM: auditlog.bnd AUDITLOG.MODULE
+
+SERVICES.BNDDIR: SERVICES.BNDDIR AUDITLOG.SRVPGM
